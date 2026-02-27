@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign Admin — Spark Sharing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --spark: #FF6B2B;
+            --spark-light: #FF8F5E;
+            --spark-glow: #FFAD3B;
+            --dark: #0A0A0F;
+            --dark-surface: #12121A;
+            --dark-card: #1A1A25;
+            --dark-input: #22222F;
+            --gray-text: #8A8A9A;
+            --light-text: #E0E0E8;
+            --white: #FAFAFF;
+            --green: #34D399;
+            --red: #F87171;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark);
+            color: var(--light-text);
+            min-height: 100vh;
+        }
+        h1,h2,h3,h4 { font-family: 'Space Grotesk', sans-serif; }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .app { position: relative; z-index: 2; }
+
+        /* NAV */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: var(--dark-surface);
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-spark {
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, var(--spark), var(--spark-glow));
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .topbar-actions { display: flex; gap: 12px; align-items: center; }
+
+        /* LAYOUT */
+        .container { max-width: 1100px; margin: 0 auto; padding: 32px; }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-spark {
+            background: linear-gradient(135deg, var(--spark), var(--spark-light));
+            color: white;
+        }
+        .btn-spark:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255,107,43,0.3);
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-text);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-danger { background: rgba(248,113,113,0.1); color: var(--red); }
+        .btn-danger:hover { background: rgba(248,113,113,0.2); }
+
+        /* CARDS */
+        .card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        /* FORMS */
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--gray-text);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dark-input);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: var(--white);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--spark); }
+        .form-input::placeholder { color: var(--gray-text); }
+        textarea.form-input { min-height: 80px; resize: vertical; }
+
+        /* CAMPAIGN LIST */
+        .campaigns-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .campaigns-header h1 { font-size: 28px; color: var(--white); }
+
+        .campaign-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .campaign-item:hover {
+            border-color: rgba(255,107,43,0.3);
+            transform: translateX(4px);
+        }
+        .campaign-info h3 { color: var(--white); font-size: 17px; margin-bottom: 4px; }
+        .campaign-info p { color: var(--gray-text); font-size: 14px; }
+        .campaign-stats {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .stat-value.spark { color: var(--spark); }
+        .stat-label { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--dark-surface);
+            border-radius: 10px;
+            padding: 4px;
+            width: fit-content;
+        }
+        .tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--gray-text);
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .tab.active {
+            background: var(--dark-card);
+            color: var(--white);
+        }
+        .tab:hover:not(.active) { color: var(--light-text); }
+
+        /* IMAGE GRID */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .image-thumb {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .image-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-thumb:hover { border-color: var(--spark); }
+        .image-thumb .delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            border-radius: 50%;
+            color: var(--red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .image-thumb:hover .delete-btn { opacity: 1; }
+
+        .upload-zone {
+            aspect-ratio: 1;
+            border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--gray-text);
+            font-size: 13px;
+        }
+        .upload-zone:hover {
+            border-color: var(--spark);
+            color: var(--spark-light);
+        }
+        .upload-zone .icon { font-size: 28px; margin-bottom: 8px; }
+
+        /* SOCIAL COPY */
+        .copy-item {
+            background: var(--dark-surface);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .copy-item textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--light-text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 60px;
+            outline: none;
+        }
+        .copy-item .remove-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--gray-text);
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .copy-item .remove-copy:hover { color: var(--red); }
+
+        /* LINKS TABLE */
+        .links-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .links-table th {
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--gray-text);
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .links-table td {
+            padding: 12px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .link-url {
+            color: var(--spark-light);
+            font-size: 13px;
+            font-family: 'Space Grotesk', monospace;
+            cursor: pointer;
+        }
+        .link-url:hover { text-decoration: underline; }
+        .copied-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--green);
+            color: var(--dark);
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        .copied-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* RECIPIENTS */
+        .recipient-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 40px;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .recipient-row .form-input { margin: 0; }
+        .remove-recipient {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(248,113,113,0.1);
+            color: var(--red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 560px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h2 { font-size: 22px; color: var(--white); margin-bottom: 20px; }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { color: var(--white); font-size: 20px; margin-bottom: 8px; }
+        .empty-state p { color: var(--gray-text); margin-bottom: 24px; }
+
+        /* ANALYTICS BAR */
+        .analytics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .analytics-card {
+            background: var(--dark-surface);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .analytics-card .value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .analytics-card .value.spark { color: var(--spark); }
+        .analytics-card .label {
+            font-size: 12px;
+            color: var(--gray-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .loading { color: var(--gray-text); text-align: center; padding: 40px; }
+
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .analytics-row { grid-template-columns: repeat(2, 1fr); }
+            .campaigns-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .campaign-stats { gap: 16px; }
+            .recipient-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="topbar">
+            <a href="/" class="logo">
+                <div class="logo-spark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                </div>
+                Spark Sharing
+            </a>
+            <div class="topbar-actions">
+                <a href="/" class="btn btn-ghost btn-sm">← Back to Site</a>
+            </div>
+        </div>
+
+        <div class="container" id="app">
+            <!-- Campaign List View -->
+            <div id="view-list">
+                <div class="campaigns-header">
+                    <h1>Campaigns</h1>
+                    <button class="btn btn-spark" onclick="showCreateModal()">+ New Campaign</button>
+                </div>
+                <div id="campaigns-list">
+                    <div class="loading">Loading campaigns...</div>
+                </div>
+            </div>
+
+            <!-- Campaign Detail View -->
+            <div id="view-detail" style="display:none">
+                <div style="margin-bottom:24px">
+                    <button class="btn btn-ghost btn-sm" onclick="showList()">← All Campaigns</button>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+                    <div>
+                        <h1 id="detail-name" style="font-size:28px;color:var(--white)"></h1>
+                        <p id="detail-desc" style="color:var(--gray-text);margin-top:4px"></p>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-ghost btn-sm" onclick="editCampaign()">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCampaign()">Delete</button>
+                    </div>
+                </div>
+
+                <div id="detail-analytics" class="analytics-row"></div>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('images', this)">Images</button>
+                    <button class="tab" onclick="switchTab('copy', this)">Social Copy</button>
+                    <button class="tab" onclick="switchTab('links', this)">Share Links</button>
+                </div>
+
+                <!-- Images Tab -->
+                <div id="tab-images" class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h3 style="color:var(--white)">Campaign Images</h3>
+                    </div>
+                    <div class="image-grid" id="image-grid">
+                        <div class="upload-zone" onclick="document.getElementById('image-upload').click()">
+                            <div class="icon">+</div>
+                            <span>Upload Images</span>
+                        </div>
+                    </div>
+                    <input type="file" id="image-upload" multiple accept="image/*" style="display:none" onchange="uploadImages(this.files)">
+                </div>
+
+                <!-- Social Copy Tab -->
+                <div id="tab-copy" class="card" style="display:none">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h3 style="color:var(--white)">Pre-written Social Copy</h3>
+                        <button class="btn btn-ghost btn-sm" onclick="addCopyField()">+ Add Copy</button>
+                    </div>
+                    <p style="color:var(--gray-text);font-size:13px;margin-bottom:16px">Write multiple options so recipients can pick what feels natural to them.</p>
+                    <div id="copy-list"></div>
+                    <button class="btn btn-spark btn-sm" onclick="saveCopies()" style="margin-top:12px">Save All Copy</button>
+                </div>
+
+                <!-- Links Tab -->
+                <div id="tab-links" class="card" style="display:none">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h3 style="color:var(--white)">Share Links</h3>
+                        <button class="btn btn-spark btn-sm" onclick="showAddRecipientsModal()">+ Generate Links</button>
+                    </div>
+                    <div id="links-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Campaign Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal">
+            <h2>Create Campaign</h2>
+            <div class="form-group">
+                <label>Campaign Name</label>
+                <input type="text" class="form-input" id="new-name" placeholder="e.g. TechCrunch Disrupt 2026">
+            </div>
+            <div class="form-group">
+                <label>Description (optional)</label>
+                <textarea class="form-input" id="new-desc" placeholder="What's this campaign for?"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button class="btn btn-ghost" onclick="hideCreateModal()">Cancel</button>
+                <button class="btn btn-spark" onclick="createCampaign()">Create Campaign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Recipients Modal -->
+    <div class="modal-overlay" id="recipients-modal">
+        <div class="modal">
+            <h2>Generate Share Links</h2>
+            <p style="color:var(--gray-text);font-size:14px;margin-bottom:20px">Add the people who should share this campaign. Each gets a unique link.</p>
+            <div id="recipients-list">
+                <div class="recipient-row">
+                    <input type="text" class="form-input" placeholder="Name" data-field="name">
+                    <input type="email" class="form-input" placeholder="Email (optional)" data-field="email">
+                    <button class="remove-recipient" onclick="this.parentElement.remove()">×</button>
+                </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="addRecipientRow()" style="margin:8px 0 20px">+ Add Another</button>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button class="btn btn-ghost" onclick="hideRecipientsModal()">Cancel</button>
+                <button class="btn btn-spark" onclick="generateLinks()">Generate Links</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Campaign Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <h2>Edit Campaign</h2>
+            <div class="form-group">
+                <label>Campaign Name</label>
+                <input type="text" class="form-input" id="edit-name">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-input" id="edit-desc"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button class="btn btn-ghost" onclick="hideEditModal()">Cancel</button>
+                <button class="btn btn-spark" onclick="saveEditCampaign()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="copied-toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        const APP_URL = window.location.origin;
+        let currentCampaign = null;
+        let campaigns = [];
+
+        // === API ===
+        async function api(path, opts = {}) {
+            const res = await fetch(path, {
+                headers: { 'Content-Type': 'application/json', ...opts.headers },
+                ...opts
+            });
+            return res.json();
+        }
+
+        // === TOAST ===
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // === CAMPAIGNS LIST ===
+        async function loadCampaigns() {
+            const data = await api('/api/campaigns');
+            campaigns = data.campaigns || [];
+            renderCampaignList();
+        }
+
+        function renderCampaignList() {
+            const el = document.getElementById('campaigns-list');
+            if (!campaigns.length) {
+                el.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚡</div>
+                        <h3>No campaigns yet</h3>
+                        <p>Create your first campaign to start coordinating social shares.</p>
+                        <button class="btn btn-spark" onclick="showCreateModal()">+ New Campaign</button>
+                    </div>`;
+                return;
+            }
+            el.innerHTML = campaigns.map(c => `
+                <div class="campaign-item" onclick="openCampaign(${c.id})">
+                    <div class="campaign-info">
+                        <h3>${esc(c.name)}</h3>
+                        <p>${esc(c.description || 'No description')}</p>
+                    </div>
+                    <div class="campaign-stats">
+                        <div class="stat">
+                            <div class="stat-value">${c.image_count || 0}</div>
+                            <div class="stat-label">Images</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${c.link_count || 0}</div>
+                            <div class="stat-label">Links</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value spark">${c.total_shares || 0}</div>
+                            <div class="stat-label">Shares</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // === CREATE CAMPAIGN ===
+        function showCreateModal() { document.getElementById('create-modal').classList.add('show'); }
+        function hideCreateModal() { document.getElementById('create-modal').classList.remove('show'); }
+
+        async function createCampaign() {
+            const name = document.getElementById('new-name').value.trim();
+            if (!name) return showToast('Campaign name is required');
+            const desc = document.getElementById('new-desc').value.trim();
+            await api('/api/campaigns', {
+                method: 'POST',
+                body: JSON.stringify({ name, description: desc, social_copies: [] })
+            });
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-desc').value = '';
+            hideCreateModal();
+            await loadCampaigns();
+            showToast('Campaign created!');
+        }
+
+        // === CAMPAIGN DETAIL ===
+        async function openCampaign(id) {
+            const data = await api(`/api/campaigns/${id}`);
+            currentCampaign = data;
+            document.getElementById('view-list').style.display = 'none';
+            document.getElementById('view-detail').style.display = 'block';
+            renderDetail();
+            loadAnalytics(id);
+        }
+
+        function showList() {
+            document.getElementById('view-list').style.display = 'block';
+            document.getElementById('view-detail').style.display = 'none';
+            currentCampaign = null;
+            loadCampaigns();
+        }
+
+        function renderDetail() {
+            const c = currentCampaign;
+            document.getElementById('detail-name').textContent = c.name;
+            document.getElementById('detail-desc').textContent = c.description || '';
+            renderImages();
+            renderCopies();
+            renderLinks();
+        }
+
+        async function loadAnalytics(id) {
+            const data = await api(`/api/campaigns/${id}/analytics`);
+            document.getElementById('detail-analytics').innerHTML = `
+                <div class="analytics-card">
+                    <div class="value">${data.total_links || 0}</div>
+                    <div class="label">Links Created</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="value">${data.total_views || 0}</div>
+                    <div class="label">Page Views</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="value spark">${data.total_shares || 0}</div>
+                    <div class="label">Total Shares</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="value">${data.total_links > 0 ? Math.round((data.total_shares / data.total_links) * 100) : 0}%</div>
+                    <div class="label">Share Rate</div>
+                </div>
+            `;
+        }
+
+        // === TABS ===
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-images').style.display = tab === 'images' ? 'block' : 'none';
+            document.getElementById('tab-copy').style.display = tab === 'copy' ? 'block' : 'none';
+            document.getElementById('tab-links').style.display = tab === 'links' ? 'block' : 'none';
+        }
+
+        // === IMAGES ===
+        function renderImages() {
+            const grid = document.getElementById('image-grid');
+            const images = (currentCampaign.images || []).map(img => `
+                <div class="image-thumb">
+                    <img src="${esc(img.image_url)}" alt="${esc(img.alt_text || '')}">
+                    <button class="delete-btn" onclick="event.stopPropagation();deleteImage(${img.id})">×</button>
+                </div>
+            `).join('');
+            grid.innerHTML = images + `
+                <div class="upload-zone" onclick="document.getElementById('image-upload').click()">
+                    <div class="icon">+</div>
+                    <span>Upload</span>
+                </div>`;
+        }
+
+        async function uploadImages(files) {
+            if (!files.length) return;
+            const formData = new FormData();
+            for (const f of files) formData.append('images', f);
+            showToast('Uploading...');
+            const res = await fetch(`/api/campaigns/${currentCampaign.id}/images`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.images) {
+                currentCampaign.images = [...(currentCampaign.images || []), ...data.images];
+                renderImages();
+                showToast(`${data.images.length} image(s) uploaded!`);
+            } else {
+                showToast('Upload failed: ' + (data.error || 'Unknown error'));
+            }
+            document.getElementById('image-upload').value = '';
+        }
+
+        async function deleteImage(imageId) {
+            if (!confirm('Delete this image?')) return;
+            await api(`/api/campaigns/${currentCampaign.id}/images/${imageId}`, { method: 'DELETE' });
+            currentCampaign.images = currentCampaign.images.filter(i => i.id !== imageId);
+            renderImages();
+            showToast('Image deleted');
+        }
+
+        // === SOCIAL COPY ===
+        function renderCopies() {
+            const list = document.getElementById('copy-list');
+            const copies = currentCampaign.social_copies || [];
+            if (!copies.length) {
+                list.innerHTML = '<p style="color:var(--gray-text);font-size:14px">No copy added yet. Click "Add Copy" to write your first option.</p>';
+                return;
+            }
+            list.innerHTML = copies.map((c, i) => `
+                <div class="copy-item">
+                    <textarea onchange="updateCopy(${i}, this.value)">${esc(c)}</textarea>
+                    <button class="remove-copy" onclick="removeCopy(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function addCopyField() {
+            if (!currentCampaign.social_copies) currentCampaign.social_copies = [];
+            currentCampaign.social_copies.push('');
+            renderCopies();
+            // Focus the last textarea
+            const items = document.querySelectorAll('#copy-list textarea');
+            if (items.length) items[items.length - 1].focus();
+        }
+
+        function updateCopy(idx, value) {
+            currentCampaign.social_copies[idx] = value;
+        }
+
+        function removeCopy(idx) {
+            currentCampaign.social_copies.splice(idx, 1);
+            renderCopies();
+        }
+
+        async function saveCopies() {
+            await api(`/api/campaigns/${currentCampaign.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ social_copies: currentCampaign.social_copies })
+            });
+            showToast('Social copy saved!');
+        }
+
+        // === SHARE LINKS ===
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            const links = currentCampaign.links || [];
+            if (!links.length) {
+                container.innerHTML = '<p style="color:var(--gray-text);font-size:14px">No share links yet. Generate links for your recipients.</p>';
+                return;
+            }
+            container.innerHTML = `
+                <table class="links-table">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Share Link</th>
+                            <th>Views</th>
+                            <th>Shares</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${links.map(l => `
+                            <tr>
+                                <td>
+                                    <div style="color:var(--white)">${esc(l.recipient_name || 'Anonymous')}</div>
+                                    <div style="font-size:12px;color:var(--gray-text)">${esc(l.recipient_email || '')}</div>
+                                </td>
+                                <td>
+                                    <span class="link-url" onclick="copyLink('${l.token}')">${APP_URL}/s/${l.token}</span>
+                                </td>
+                                <td>${l.views || 0}</td>
+                                <td style="color:var(--spark);font-weight:600">${l.shares || 0}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function copyLink(token) {
+            navigator.clipboard.writeText(`${APP_URL}/s/${token}`);
+            showToast('Share link copied!');
+        }
+
+        // === RECIPIENTS MODAL ===
+        function showAddRecipientsModal() {
+            document.getElementById('recipients-modal').classList.add('show');
+            document.getElementById('recipients-list').innerHTML = `
+                <div class="recipient-row">
+                    <input type="text" class="form-input" placeholder="Name" data-field="name">
+                    <input type="email" class="form-input" placeholder="Email (optional)" data-field="email">
+                    <button class="remove-recipient" onclick="this.parentElement.remove()">×</button>
+                </div>`;
+        }
+        function hideRecipientsModal() { document.getElementById('recipients-modal').classList.remove('show'); }
+
+        function addRecipientRow() {
+            const list = document.getElementById('recipients-list');
+            const row = document.createElement('div');
+            row.className = 'recipient-row';
+            row.innerHTML = `
+                <input type="text" class="form-input" placeholder="Name" data-field="name">
+                <input type="email" class="form-input" placeholder="Email (optional)" data-field="email">
+                <button class="remove-recipient" onclick="this.parentElement.remove()">×</button>`;
+            list.appendChild(row);
+        }
+
+        async function generateLinks() {
+            const rows = document.querySelectorAll('#recipients-list .recipient-row');
+            const recipients = [];
+            rows.forEach(row => {
+                const name = row.querySelector('[data-field="name"]').value.trim();
+                const email = row.querySelector('[data-field="email"]').value.trim();
+                if (name || email) recipients.push({ name, email });
+            });
+            if (!recipients.length) return showToast('Add at least one recipient');
+
+            const data = await api(`/api/campaigns/${currentCampaign.id}/links`, {
+                method: 'POST',
+                body: JSON.stringify({ recipients })
+            });
+
+            if (data.links) {
+                currentCampaign.links = [...(currentCampaign.links || []), ...data.links];
+                renderLinks();
+                hideRecipientsModal();
+                showToast(`${data.links.length} share link(s) generated!`);
+                loadAnalytics(currentCampaign.id);
+            }
+        }
+
+        // === EDIT / DELETE ===
+        function editCampaign() {
+            document.getElementById('edit-name').value = currentCampaign.name;
+            document.getElementById('edit-desc').value = currentCampaign.description || '';
+            document.getElementById('edit-modal').classList.add('show');
+        }
+        function hideEditModal() { document.getElementById('edit-modal').classList.remove('show'); }
+
+        async function saveEditCampaign() {
+            const name = document.getElementById('edit-name').value.trim();
+            if (!name) return showToast('Name required');
+            const desc = document.getElementById('edit-desc').value.trim();
+            const data = await api(`/api/campaigns/${currentCampaign.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name, description: desc })
+            });
+            currentCampaign.name = data.name;
+            currentCampaign.description = data.description;
+            document.getElementById('detail-name').textContent = data.name;
+            document.getElementById('detail-desc').textContent = data.description || '';
+            hideEditModal();
+            showToast('Campaign updated');
+        }
+
+        async function deleteCampaign() {
+            if (!confirm('Delete this campaign? This cannot be undone.')) return;
+            await api(`/api/campaigns/${currentCampaign.id}`, { method: 'DELETE' });
+            showToast('Campaign deleted');
+            showList();
+        }
+
+        // === UTIL ===
+        function esc(s) {
+            if (!s) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        // === INIT ===
+        loadCampaigns();
+    </script>
+</body>
+</html>

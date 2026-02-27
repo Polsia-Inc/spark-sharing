@@ -1,16 +1,22 @@
 {
-  "name": "express-postgres-starter",
+  "name": "spark-sharing",
   "version": "1.0.0",
+  "description": "Coordinated social sharing for PR teams, events, launches, and communities",
   "main": "server.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "build": "npm run migrate",
-    "migrate": "node migrate.js"
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "openai": "^4.77.0",
-    "pg": "^8.11.3"
+    "pg": "^8.12.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
+    "form-data": "^4.0.0",
+    "crypto": "^1.0.1",
+    "cors": "^2.8.5"
   }
 }
