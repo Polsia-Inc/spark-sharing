@@ -26,7 +26,13 @@ app.get('/health', async (req, res) => {
 // ===== STATIC FILES =====
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ===== SHARE PAGE ROUTE (must be before static catch-all) =====
+// ===== SHARE PAGE ROUTES (must be before static catch-all) =====
+// Universal campaign link (new)
+app.get('/s/campaign/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'share.html'));
+});
+
+// Individual share token link (legacy)
 app.get('/s/:token', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'share.html'));
 });
@@ -82,9 +88,10 @@ app.post('/api/campaigns', async (req, res) => {
     const { name, description, social_copies } = req.body;
     if (!name) return res.status(400).json({ error: 'Campaign name is required' });
 
+    const slug = generateSlug(name);
     const result = await query(
-      `INSERT INTO campaigns (name, description, social_copies) VALUES ($1, $2, $3) RETURNING *`,
-      [name, description || '', JSON.stringify(social_copies || [])]
+      `INSERT INTO campaigns (name, slug, description, social_copies) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name, slug, description || '', JSON.stringify(social_copies || [])]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -170,6 +177,14 @@ function generateToken() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 100) + '-' + Date.now().toString(36);
+}
+
 // Generate share links (bulk)
 app.post('/api/campaigns/:id/links', async (req, res) => {
   try {
@@ -213,7 +228,35 @@ app.get('/api/campaigns/:id/links', async (req, res) => {
 
 // ===== SHARE PAGE API =====
 
-// Get share data by token
+// Get share data by campaign slug (universal link)
+app.get('/api/share/campaign/:slug', async (req, res) => {
+  try {
+    const campaign = await query('SELECT * FROM campaigns WHERE slug = $1', [req.params.slug]);
+    if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+
+    const images = await query(
+      'SELECT * FROM campaign_images WHERE campaign_id = $1 ORDER BY sort_order',
+      [campaign.rows[0].id]
+    );
+
+    // Track view at campaign level (we'll increment a counter on the campaign)
+    await query('UPDATE campaigns SET updated_at = NOW() WHERE id = $1', [campaign.rows[0].id]);
+
+    res.json({
+      campaign: campaign.rows[0],
+      images: images.rows,
+      recipient: {
+        name: '',
+        email: ''
+      },
+      isUniversalLink: true
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get share data by token (legacy per-recipient links)
 app.get('/api/share/:token', async (req, res) => {
   try {
     const link = await query('SELECT * FROM share_links WHERE token = $1', [req.params.token]);
@@ -236,7 +279,8 @@ app.get('/api/share/:token', async (req, res) => {
       recipient: {
         name: shareLink.recipient_name,
         email: shareLink.recipient_email
-      }
+      },
+      isUniversalLink: false
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

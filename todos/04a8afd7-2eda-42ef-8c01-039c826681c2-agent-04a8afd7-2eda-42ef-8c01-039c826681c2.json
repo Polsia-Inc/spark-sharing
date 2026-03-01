@@ -1,12 +1,12 @@
 [
   {
     "content": "Fix LinkedIn share intent URL (remove auto-preview)",
-    "status": "in_progress",
+    "status": "completed",
     "activeForm": "Fixing LinkedIn share intent URL"
   },
   {
     "content": "Add universal campaign links (/s/campaign/:slug)",
-    "status": "pending",
+    "status": "in_progress",
     "activeForm": "Adding universal campaign links"
   },
   {

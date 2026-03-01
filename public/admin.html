@@ -488,6 +488,20 @@
                     </div>
                 </div>
 
+                <!-- Universal Share Link -->
+                <div class="card" style="background:rgba(255,107,43,0.05);border-color:rgba(255,107,43,0.2);margin-bottom:24px">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <h3 style="color:var(--white);font-size:16px;margin-bottom:6px">📢 Universal Share Link</h3>
+                            <p style="color:var(--gray-text);font-size:13px;margin-bottom:12px">Share this one link with anyone. No need for individual links.</p>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <code id="universal-link" style="font-family:'Space Grotesk',monospace;color:var(--spark-light);font-size:14px;background:rgba(0,0,0,0.3);padding:8px 14px;border-radius:6px;flex:1"></code>
+                                <button class="btn btn-spark btn-sm" onclick="copyUniversalLink()">📋 Copy Link</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="detail-analytics" class="analytics-row"></div>
 
                 <div class="tabs">
@@ -524,9 +538,10 @@
                 <!-- Links Tab -->
                 <div id="tab-links" class="card" style="display:none">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                        <h3 style="color:var(--white)">Share Links</h3>
+                        <h3 style="color:var(--white)">Individual Share Links (Optional)</h3>
                         <button class="btn btn-spark btn-sm" onclick="showAddRecipientsModal()">+ Generate Links</button>
                     </div>
+                    <p style="color:var(--gray-text);font-size:13px;margin-bottom:16px">Generate individual tracking links if you need per-recipient analytics. Otherwise, just use the universal link above.</p>
                     <div id="links-container"></div>
                 </div>
             </div>
@@ -698,6 +713,11 @@
             const c = currentCampaign;
             document.getElementById('detail-name').textContent = c.name;
             document.getElementById('detail-desc').textContent = c.description || '';
+
+            // Set universal link
+            const universalLink = c.slug ? `${APP_URL}/s/campaign/${c.slug}` : '';
+            document.getElementById('universal-link').textContent = universalLink;
+
             renderImages();
             renderCopies();
             renderLinks();
@@ -860,6 +880,12 @@
         function copyLink(token) {
             navigator.clipboard.writeText(`${APP_URL}/s/${token}`);
             showToast('Share link copied!');
+        }
+
+        function copyUniversalLink() {
+            const link = document.getElementById('universal-link').textContent;
+            navigator.clipboard.writeText(link);
+            showToast('Universal link copied!');
         }
 
         // === RECIPIENTS MODAL ===

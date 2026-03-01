@@ -381,7 +381,12 @@
     <div class="toast" id="toast">Copied!</div>
 
     <script>
-        const token = window.location.pathname.split('/s/')[1];
+        const pathname = window.location.pathname;
+        const isCampaignLink = pathname.startsWith('/s/campaign/');
+        const identifier = isCampaignLink
+            ? pathname.split('/s/campaign/')[1]
+            : pathname.split('/s/')[1];
+
         let shareData = null;
         let selectedImage = null;
         let selectedCopy = null;
@@ -402,7 +407,10 @@
 
         async function loadShareData() {
             try {
-                const res = await fetch(`/api/share/${token}`);
+                const apiPath = isCampaignLink
+                    ? `/api/share/campaign/${identifier}`
+                    : `/api/share/${identifier}`;
+                const res = await fetch(apiPath);
                 if (!res.ok) throw new Error('not found');
                 shareData = await res.json();
                 render();
@@ -418,13 +426,16 @@
 
         function render() {
             const { campaign, images, recipient } = shareData;
-            const greeting = recipient.name ? `Hey ${esc(recipient.name)}!` : 'Hey there!';
+            const greeting = recipient && recipient.name ? `Hey ${esc(recipient.name)}!` : 'Hey there!';
+            const subtitle = shareData.isUniversalLink
+                ? 'Pick an image, copy the text, and share to your network in seconds.'
+                : 'Pick an image and grab the copy below. It takes 10 seconds.';
 
             document.getElementById('main').innerHTML = `
                 <div class="share-header">
                     <div class="badge">⚡ ${esc(campaign.name)}</div>
                     <h1><span class="greeting">${greeting}</span> Ready to share?</h1>
-                    <p>Pick an image and grab the copy below. It takes 10 seconds.</p>
+                    <p>${subtitle}</p>
                 </div>
 
                 ${images.length ? `
@@ -535,15 +546,18 @@
 
         async function trackShare(platform) {
             try {
-                await fetch('/api/share-events', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token,
-                        platform,
-                        image_url: selectedImage
-                    })
-                });
+                // Only track for token-based links (legacy)
+                if (!isCampaignLink) {
+                    await fetch('/api/share-events', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: identifier,
+                            platform,
+                            image_url: selectedImage
+                        })
+                    });
+                }
             } catch (e) { /* silent */ }
 
             const el = document.getElementById('success-msg');
@@ -554,7 +568,7 @@
         }
 
         // Init
-        if (token) {
+        if (identifier) {
             loadShareData();
         } else {
             document.getElementById('main').innerHTML = `
