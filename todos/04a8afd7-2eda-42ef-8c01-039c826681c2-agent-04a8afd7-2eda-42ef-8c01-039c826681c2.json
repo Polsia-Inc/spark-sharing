@@ -6,12 +6,12 @@
   },
   {
     "content": "Add universal campaign links (/s/campaign/:slug)",
-    "status": "in_progress",
+    "status": "completed",
     "activeForm": "Adding universal campaign links"
   },
   {
     "content": "Simplify share page UX (bigger CTAs, clearer flow)",
-    "status": "pending",
+    "status": "in_progress",
     "activeForm": "Simplifying share page UX"
   },
   {
