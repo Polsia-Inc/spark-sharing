@@ -514,8 +514,8 @@
 
         function shareToLinkedIn() {
             const text = selectedCopy || '';
-            // LinkedIn share intent
-            const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`;
+            // LinkedIn feed with share dialog - no URL to avoid auto-preview
+            const url = 'https://www.linkedin.com/feed/?shareActive=true';
             // Copy the text first so user can paste it
             if (text) {
                 navigator.clipboard.writeText(text).then(() => {
