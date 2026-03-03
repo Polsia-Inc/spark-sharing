@@ -133,6 +133,92 @@
             border-color: var(--spark);
         }
 
+        /* EMAIL CAPTURE */
+        .email-form {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .email-form input[type="email"] {
+            flex: 1;
+            padding: 14px 20px;
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: var(--white);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .email-form input[type="email"]:focus {
+            border-color: var(--spark);
+        }
+
+        .email-form input[type="email"]::placeholder {
+            color: var(--gray-text);
+        }
+
+        .email-form button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--spark), var(--spark-light));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .email-form button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(255, 107, 43, 0.3);
+        }
+
+        .email-form button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-message {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .form-message.success {
+            color: #34D399;
+        }
+
+        .form-message.error {
+            color: #F87171;
+        }
+
+        .hero-secondary-link {
+            display: block;
+            margin-top: 16px;
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        .hero-secondary-link a {
+            color: var(--spark-light);
+            text-decoration: none;
+        }
+
+        .hero-secondary-link a:hover {
+            text-decoration: underline;
+        }
+
         /* HERO */
         .hero {
             max-width: 1200px;
@@ -435,6 +521,8 @@
             .cases-grid { grid-template-columns: 1fr; }
             .how-section, .use-cases, .cta-section { padding-left: 24px; padding-right: 24px; }
             .mock-row { flex-direction: column; }
+            .email-form { flex-direction: column; }
+            .email-form button { width: 100%; }
             footer { flex-direction: column; gap: 16px; text-align: center; }
         }
     </style>
@@ -463,9 +551,13 @@
             Create a campaign. Upload branded images. Add pre-written copy.
             Send unique share links. Watch your reach multiply.
         </p>
-        <div class="hero-cta">
-            <a href="/admin" class="btn-primary">Create Your First Campaign →</a>
-            <a href="#how" class="btn-outline">See How It Works</a>
+        <form class="email-form" id="hero-email-form" onsubmit="submitEmail(event, 'hero')">
+            <input type="email" placeholder="your@email.com" required id="hero-email-input">
+            <button type="submit" id="hero-email-btn">Get Early Access</button>
+        </form>
+        <div class="form-message" id="hero-form-msg"></div>
+        <div class="hero-secondary-link">
+            Already have access? <a href="/admin">Go to dashboard →</a>
         </div>
 
         <div class="hero-visual">
@@ -566,8 +658,12 @@
 
     <section class="cta-section">
         <h2>Your audience is ready to share.<br>Give them the spark.</h2>
-        <p>Free to start. No credit card needed.</p>
-        <a href="/admin" class="btn-primary">Create Your First Campaign →</a>
+        <p>Join teams already amplifying their reach. Free to start.</p>
+        <form class="email-form" id="cta-email-form" onsubmit="submitEmail(event, 'cta')">
+            <input type="email" placeholder="your@email.com" required id="cta-email-input">
+            <button type="submit" id="cta-email-btn">Start Free</button>
+        </form>
+        <div class="form-message" id="cta-form-msg"></div>
     </section>
 
     <footer>
@@ -581,5 +677,47 @@
         </div>
         <p>&copy; 2026 Spark Sharing. Coordinated social amplification.</p>
     </footer>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const refSource = urlParams.get('ref') || 'direct';
+
+        async function submitEmail(e, formId) {
+            e.preventDefault();
+            const input = document.getElementById(formId + '-email-input');
+            const btn = document.getElementById(formId + '-email-btn');
+            const msg = document.getElementById(formId + '-form-msg');
+            const email = input.value.trim();
+
+            if (!email) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Joining...';
+            msg.className = 'form-message';
+            msg.textContent = '';
+
+            try {
+                const res = await fetch('/api/leads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, source: refSource + '_' + formId })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    msg.className = 'form-message success';
+                    msg.textContent = data.message;
+                    input.value = '';
+                } else {
+                    throw new Error(data.error || 'Something went wrong');
+                }
+            } catch (err) {
+                msg.className = 'form-message error';
+                msg.textContent = err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = formId === 'hero' ? 'Get Early Access' : 'Start Free';
+            }
+        }
+    </script>
 </body>
 </html>

@@ -565,18 +565,16 @@
 
         async function trackShare(platform) {
             try {
-                // Only track for token-based links (legacy)
-                if (!isCampaignLink) {
-                    await fetch('/api/share-events', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            token: identifier,
-                            platform,
-                            image_url: selectedImage
-                        })
-                    });
-                }
+                await fetch('/api/share-events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: isCampaignLink ? null : identifier,
+                        platform,
+                        image_url: selectedImage,
+                        campaign_slug: isCampaignLink ? identifier : null
+                    })
+                });
             } catch (e) { /* silent */ }
 
             const el = document.getElementById('success-msg');
