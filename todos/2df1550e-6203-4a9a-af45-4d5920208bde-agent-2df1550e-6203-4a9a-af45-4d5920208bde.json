@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Create database migration for leads, page_views, and events tables",
+    "status": "completed",
+    "activeForm": "Creating database migration"
+  },
+  {
+    "content": "Add email capture API and analytics tracking endpoints to server.js",
+    "status": "completed",
+    "activeForm": "Adding API endpoints"
+  },
+  {
+    "content": "Add email signup forms to landing page hero and CTA sections",
+    "status": "completed",
+    "activeForm": "Adding email capture forms to landing page"
+  },
+  {
+    "content": "Build /admin/analytics page and /api/metrics endpoint",
+    "status": "completed",
+    "activeForm": "Building analytics admin dashboard"
+  },
+  {
+    "content": "Deploy and verify all features work end-to-end",
+    "status": "in_progress",
+    "activeForm": "Deploying and verifying"
+  }
+]
