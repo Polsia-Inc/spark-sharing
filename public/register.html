@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — Spark Sharing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --spark: #FF6B2B;
+            --spark-light: #FF8F5E;
+            --spark-glow: #FFAD3B;
+            --dark: #0A0A0F;
+            --dark-surface: #12121A;
+            --dark-card: #1A1A25;
+            --dark-input: #22222F;
+            --gray-text: #8A8A9A;
+            --light-text: #E0E0E8;
+            --white: #FAFAFF;
+            --red: #F87171;
+            --green: #34D399;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark);
+            color: var(--light-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        h1,h2,h3,h4 { font-family: 'Space Grotesk', sans-serif; }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--white);
+            text-decoration: none;
+            margin-bottom: 8px;
+        }
+
+        .logo-spark {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--spark), var(--spark-glow));
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .subtitle {
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        .card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--white);
+        }
+
+        .card-subtitle {
+            color: var(--gray-text);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--light-text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dark-input);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--white);
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--spark);
+            box-shadow: 0 0 0 3px rgba(255,107,43,0.1);
+        }
+
+        input::placeholder {
+            color: var(--gray-text);
+        }
+
+        .error-message {
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.3);
+            color: var(--red);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .password-requirements {
+            background: var(--dark-input);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .password-requirements .title {
+            color: var(--gray-text);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .requirement {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: var(--gray-text);
+        }
+
+        .requirement:last-child {
+            margin-bottom: 0;
+        }
+
+        .requirement .icon {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--gray-text);
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .requirement.met {
+            color: var(--green);
+        }
+
+        .requirement.met .icon {
+            background: var(--green);
+            border-color: var(--green);
+            position: relative;
+        }
+
+        .requirement.met .icon::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: linear-gradient(135deg, var(--spark), var(--spark-light));
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255,107,43,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .links {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .links a {
+            color: var(--spark);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            margin: 16px 0;
+            color: var(--gray-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo-section">
+            <a href="/" class="logo">
+                <div class="logo-spark">✨</div>
+                Spark Sharing
+            </a>
+            <div class="subtitle">Coordinated social campaigns</div>
+        </div>
+
+        <div class="card">
+            <h2>Create your account</h2>
+            <div class="card-subtitle">Get started with Spark Sharing</div>
+
+            <div class="error-message" id="error"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="name">Name (optional)</label>
+                    <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required autocomplete="new-password">
+
+                    <div class="password-requirements">
+                        <div class="title">Password must contain:</div>
+                        <div class="requirement" id="req-length">
+                            <div class="icon"></div>
+                            <span>At least 10 characters</span>
+                        </div>
+                        <div class="requirement" id="req-letter">
+                            <div class="icon"></div>
+                            <span>At least 1 letter</span>
+                        </div>
+                        <div class="requirement" id="req-number">
+                            <div class="icon"></div>
+                            <span>At least 1 number</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn" disabled>Create Account</button>
+            </form>
+
+            <div class="links">
+                Already have an account?
+                <a href="/admin/login">Sign in</a>
+                <div class="divider">•</div>
+                <a href="/">Back to home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD_MIN_LENGTH = 10;
+
+        const form = document.getElementById('registerForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorDiv = document.getElementById('error');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+
+        const requirements = {
+            length: { element: document.getElementById('req-length'), test: (pw) => pw.length >= PASSWORD_MIN_LENGTH },
+            letter: { element: document.getElementById('req-letter'), test: (pw) => /[a-zA-Z]/.test(pw) },
+            number: { element: document.getElementById('req-number'), test: (pw) => /[0-9]/.test(pw) }
+        };
+
+        function updateRequirementUI(reqId, met) {
+            const req = Object.values(requirements).find(r => r.element.id === reqId);
+            if (req) {
+                if (met) {
+                    req.element.classList.add('met');
+                } else {
+                    req.element.classList.remove('met');
+                }
+            }
+        }
+
+        function validatePassword(password) {
+            const results = {
+                length: requirements.length.test(password),
+                letter: requirements.letter.test(password),
+                number: requirements.number.test(password)
+            };
+
+            updateRequirementUI('req-length', results.length);
+            updateRequirementUI('req-letter', results.letter);
+            updateRequirementUI('req-number', results.number);
+
+            return results.length && results.letter && results.number;
+        }
+
+        function updateSubmitButton() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const passwordValid = validatePassword(password);
+            const passwordsMatch = password === confirmPassword && password.length > 0;
+
+            submitBtn.disabled = !(passwordValid && passwordsMatch);
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            errorDiv.classList.remove('show');
+        }
+
+        passwordInput.addEventListener('input', updateSubmitButton);
+        confirmPasswordInput.addEventListener('input', updateSubmitButton);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const email = document.getElementById('email').value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const name = document.getElementById('name').value.trim();
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            if (!validatePassword(password)) {
+                showError('Password does not meet requirements');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, name: name || null })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.location.href = '/admin';
+                } else {
+                    showError(data.error || 'Registration failed');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Account';
+                    // Re-enable button if password is still valid
+                    updateSubmitButton();
+                }
+            } catch (err) {
+                showError('Network error. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+                updateSubmitButton();
+            }
+        });
+    </script>
+</body>
+</html>

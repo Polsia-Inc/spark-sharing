@@ -2,13 +2,38 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
-const { query } = require('./lib/db');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const { getPool, query } = require('./lib/db');
 const { uploadToR2, deleteFromR2 } = require('./lib/r2');
 const { runMigrations } = require('./lib/migrate');
+const { requireAuth } = require('./lib/auth-middleware');
+const { validatePassword } = require('./lib/password-policy');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+// ===== TRUST PROXY (required for Render secure cookies) =====
+app.set('trust proxy', 1);
+
+// ===== SESSION CONFIGURATION =====
+app.use(session({
+  store: new pgSession({
+    pool: getPool(),
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET || 'spark-sharing-secret-change-in-prod',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: 'lax'
+  }
+}));
 
 // ===== BOT DETECTION =====
 const BOT_PATTERNS = [
@@ -74,6 +99,128 @@ app.get('/health', async (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
   } catch (err) {
     res.status(503).json({ status: 'error', error: err.message });
+  }
+});
+
+// ===== AUTH ROUTES =====
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    // Validate inputs
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.errors[0] });
+    }
+
+    // Check if user already exists
+    const existing = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Hash password and create user
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await query(
+      'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, created_at',
+      [email.toLowerCase().trim(), passwordHash, name || null]
+    );
+
+    const user = result.rows[0];
+
+    // Assign existing campaigns to first user
+    const userCount = await query('SELECT COUNT(*) as count FROM users');
+    if (parseInt(userCount.rows[0].count) === 1) {
+      await query('UPDATE campaigns SET user_id = $1 WHERE user_id IS NULL', [user.id]);
+    }
+
+    // Create session
+    req.session.userId = user.id;
+    req.session.userEmail = user.email;
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    });
+  } catch (err) {
+    console.error('[auth] Register error:', err.message);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find user
+    const result = await query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const user = result.rows[0];
+
+    // Verify password
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Create session
+    req.session.userId = user.id;
+    req.session.userEmail = user.email;
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    });
+  } catch (err) {
+    console.error('[auth] Login error:', err.message);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.json({ success: true });
+  });
+});
+
+// Get current user
+app.get('/api/auth/me', (req, res) => {
+  if (req.session && req.session.userId) {
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.session.userId,
+        email: req.session.userEmail
+      }
+    });
+  } else {
+    res.json({ authenticated: false });
   }
 });
 
@@ -176,10 +323,10 @@ app.post('/api/track', async (req, res) => {
   }
 });
 
-// ===== CAMPAIGN CRUD =====
+// ===== CAMPAIGN CRUD (Protected Routes) =====
 
-// List campaigns
-app.get('/api/campaigns', async (req, res) => {
+// List campaigns (only for logged-in user)
+app.get('/api/campaigns', requireAuth, async (req, res) => {
   try {
     const result = await query(`
       SELECT c.*,
@@ -188,18 +335,19 @@ app.get('/api/campaigns', async (req, res) => {
         (SELECT COALESCE(SUM(views), 0) FROM share_links WHERE campaign_id = c.id) as total_views,
         (SELECT COALESCE(SUM(shares), 0) FROM share_links WHERE campaign_id = c.id) as total_shares
       FROM campaigns c
+      WHERE c.user_id = $1
       ORDER BY c.created_at DESC
-    `);
+    `, [req.session.userId]);
     res.json({ campaigns: result.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get single campaign with images and links
-app.get('/api/campaigns/:id', async (req, res) => {
+// Get single campaign with images and links (check ownership)
+app.get('/api/campaigns/:id', requireAuth, async (req, res) => {
   try {
-    const campaign = await query('SELECT * FROM campaigns WHERE id = $1', [req.params.id]);
+    const campaign = await query('SELECT * FROM campaigns WHERE id = $1 AND user_id = $2', [req.params.id, req.session.userId]);
     if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
 
     const images = await query(
@@ -221,16 +369,16 @@ app.get('/api/campaigns/:id', async (req, res) => {
   }
 });
 
-// Create campaign
-app.post('/api/campaigns', async (req, res) => {
+// Create campaign (assign to logged-in user)
+app.post('/api/campaigns', requireAuth, async (req, res) => {
   try {
     const { name, description, social_copies } = req.body;
     if (!name) return res.status(400).json({ error: 'Campaign name is required' });
 
     const slug = generateSlug(name);
     const result = await query(
-      `INSERT INTO campaigns (name, slug, description, social_copies) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [name, slug, description || '', JSON.stringify(social_copies || [])]
+      `INSERT INTO campaigns (name, slug, description, social_copies, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, slug, description || '', JSON.stringify(social_copies || []), req.session.userId]
     );
 
     // Track campaign creation
@@ -242,8 +390,8 @@ app.post('/api/campaigns', async (req, res) => {
   }
 });
 
-// Update campaign
-app.put('/api/campaigns/:id', async (req, res) => {
+// Update campaign (check ownership)
+app.put('/api/campaigns/:id', requireAuth, async (req, res) => {
   try {
     const { name, description, social_copies, status } = req.body;
     const result = await query(
@@ -253,8 +401,8 @@ app.put('/api/campaigns/:id', async (req, res) => {
         social_copies = COALESCE($3, social_copies),
         status = COALESCE($4, status),
         updated_at = NOW()
-      WHERE id = $5 RETURNING *`,
-      [name, description, social_copies ? JSON.stringify(social_copies) : null, status, req.params.id]
+      WHERE id = $5 AND user_id = $6 RETURNING *`,
+      [name, description, social_copies ? JSON.stringify(social_copies) : null, status, req.params.id, req.session.userId]
     );
     if (!result.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
     res.json(result.rows[0]);
@@ -263,23 +411,23 @@ app.put('/api/campaigns/:id', async (req, res) => {
   }
 });
 
-// Delete campaign
-app.delete('/api/campaigns/:id', async (req, res) => {
+// Delete campaign (check ownership)
+app.delete('/api/campaigns/:id', requireAuth, async (req, res) => {
   try {
-    await query('DELETE FROM campaigns WHERE id = $1', [req.params.id]);
+    await query('DELETE FROM campaigns WHERE id = $1 AND user_id = $2', [req.params.id, req.session.userId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ===== IMAGE UPLOAD =====
+// ===== IMAGE UPLOAD (Protected) =====
 
 // Upload images to campaign
-app.post('/api/campaigns/:id/images', upload.array('images', 10), async (req, res) => {
+app.post('/api/campaigns/:id/images', requireAuth, upload.array('images', 10), async (req, res) => {
   try {
     const campaignId = req.params.id;
-    const campaign = await query('SELECT id FROM campaigns WHERE id = $1', [campaignId]);
+    const campaign = await query('SELECT id FROM campaigns WHERE id = $1 AND user_id = $2', [campaignId, req.session.userId]);
     if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
 
     const uploaded = [];
@@ -298,9 +446,13 @@ app.post('/api/campaigns/:id/images', upload.array('images', 10), async (req, re
   }
 });
 
-// Delete image
-app.delete('/api/campaigns/:id/images/:imageId', async (req, res) => {
+// Delete image (check campaign ownership)
+app.delete('/api/campaigns/:id/images/:imageId', requireAuth, async (req, res) => {
   try {
+    // First check campaign ownership
+    const campaign = await query('SELECT id FROM campaigns WHERE id = $1 AND user_id = $2', [req.params.id, req.session.userId]);
+    if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+
     const img = await query('SELECT * FROM campaign_images WHERE id = $1 AND campaign_id = $2', [req.params.imageId, req.params.id]);
     if (!img.rows[0]) return res.status(404).json({ error: 'Image not found' });
 
@@ -328,11 +480,11 @@ function generateSlug(name) {
     .substring(0, 100) + '-' + Date.now().toString(36);
 }
 
-// Generate share links (bulk)
-app.post('/api/campaigns/:id/links', async (req, res) => {
+// Generate share links (bulk) - Protected
+app.post('/api/campaigns/:id/links', requireAuth, async (req, res) => {
   try {
     const campaignId = req.params.id;
-    const campaign = await query('SELECT id FROM campaigns WHERE id = $1', [campaignId]);
+    const campaign = await query('SELECT id FROM campaigns WHERE id = $1 AND user_id = $2', [campaignId, req.session.userId]);
     if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
 
     const { recipients } = req.body; // [{name, email}]
@@ -356,9 +508,13 @@ app.post('/api/campaigns/:id/links', async (req, res) => {
   }
 });
 
-// List share links for campaign
-app.get('/api/campaigns/:id/links', async (req, res) => {
+// List share links for campaign - Protected
+app.get('/api/campaigns/:id/links', requireAuth, async (req, res) => {
   try {
+    // Check campaign ownership
+    const campaign = await query('SELECT id FROM campaigns WHERE id = $1 AND user_id = $2', [req.params.id, req.session.userId]);
+    if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+
     const result = await query(
       'SELECT * FROM share_links WHERE campaign_id = $1 ORDER BY created_at DESC',
       [req.params.id]
@@ -471,9 +627,13 @@ app.post('/api/share-events', async (req, res) => {
   }
 });
 
-// ===== CAMPAIGN ANALYTICS =====
-app.get('/api/campaigns/:id/analytics', async (req, res) => {
+// ===== CAMPAIGN ANALYTICS (Protected) =====
+app.get('/api/campaigns/:id/analytics', requireAuth, async (req, res) => {
   try {
+    // Check campaign ownership
+    const campaign = await query('SELECT id FROM campaigns WHERE id = $1 AND user_id = $2', [req.params.id, req.session.userId]);
+    if (!campaign.rows[0]) return res.status(404).json({ error: 'Campaign not found' });
+
     const stats = await query(`
       SELECT
         (SELECT COUNT(*) FROM share_links WHERE campaign_id = $1) as total_links,
@@ -536,13 +696,23 @@ app.get('/api/metrics', async (req, res) => {
   }
 });
 
-// ===== ADMIN PAGE ROUTES =====
-app.get('/admin', (req, res) => {
+// ===== ADMIN PAGE ROUTES (Protected) =====
+app.get('/admin', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin/analytics', (req, res) => {
+app.get('/admin/analytics', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
+});
+
+// Login page (public)
+app.get('/admin/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Register page (public)
+app.get('/admin/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
 // ===== START SERVER =====

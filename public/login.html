@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Spark Sharing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --spark: #FF6B2B;
+            --spark-light: #FF8F5E;
+            --spark-glow: #FFAD3B;
+            --dark: #0A0A0F;
+            --dark-surface: #12121A;
+            --dark-card: #1A1A25;
+            --dark-input: #22222F;
+            --gray-text: #8A8A9A;
+            --light-text: #E0E0E8;
+            --white: #FAFAFF;
+            --red: #F87171;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark);
+            color: var(--light-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        h1,h2,h3,h4 { font-family: 'Space Grotesk', sans-serif; }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--white);
+            text-decoration: none;
+            margin-bottom: 8px;
+        }
+
+        .logo-spark {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--spark), var(--spark-glow));
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .subtitle {
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        .card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--white);
+        }
+
+        .card-subtitle {
+            color: var(--gray-text);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--light-text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dark-input);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--white);
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: var(--spark);
+            box-shadow: 0 0 0 3px rgba(255,107,43,0.1);
+        }
+
+        input::placeholder {
+            color: var(--gray-text);
+        }
+
+        .error-message {
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.3);
+            color: var(--red);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: linear-gradient(135deg, var(--spark), var(--spark-light));
+            color: white;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255,107,43,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .links {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .links a {
+            color: var(--spark);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            margin: 16px 0;
+            color: var(--gray-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo-section">
+            <a href="/" class="logo">
+                <div class="logo-spark">✨</div>
+                Spark Sharing
+            </a>
+            <div class="subtitle">Coordinated social campaigns</div>
+        </div>
+
+        <div class="card">
+            <h2>Welcome back</h2>
+            <div class="card-subtitle">Sign in to your account</div>
+
+            <div class="error-message" id="error"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Sign In</button>
+            </form>
+
+            <div class="links">
+                Don't have an account?
+                <a href="/admin/register">Create account</a>
+                <div class="divider">•</div>
+                <a href="/">Back to home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorDiv = document.getElementById('error');
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            errorDiv.classList.remove('show');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Please enter email and password');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.location.href = '/admin';
+                } else {
+                    showError(data.error || 'Login failed');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign In';
+                }
+            } catch (err) {
+                showError('Network error. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
+</body>
+</html>
