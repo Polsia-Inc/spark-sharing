@@ -415,6 +415,73 @@
             font-size: 15px;
         }
 
+        /* TRUST SIGNALS */
+        .trust-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 48px;
+            text-align: center;
+        }
+
+        .trust-stats {
+            display: flex;
+            justify-content: center;
+            gap: 64px;
+            flex-wrap: wrap;
+        }
+
+        .trust-stat {
+            text-align: center;
+        }
+
+        .trust-stat-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--spark), var(--spark-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .trust-stat-label {
+            color: var(--gray-text);
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .trust-testimonial {
+            margin-top: 40px;
+            padding: 24px;
+            background: var(--dark-card);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            color: var(--gray-text);
+            font-style: italic;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .trust-badge-list {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 32px;
+            font-size: 14px;
+            color: var(--gray-text);
+        }
+
+        .trust-badge-list span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         /* USE CASES */
         .use-cases {
             max-width: 1200px;
@@ -498,15 +565,68 @@
             border-top: 1px solid rgba(255,255,255,0.06);
             max-width: 1200px;
             margin: 0 auto;
-            padding: 32px 48px;
+            padding: 48px 48px 32px;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 48px;
+            margin-bottom: 32px;
+        }
+
+        .footer-left {
+            flex: 1;
+        }
+
+        footer .logo { font-size: 18px; margin-bottom: 12px; }
+
+        .footer-description {
+            color: var(--gray-text);
+            font-size: 14px;
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 48px;
+        }
+
+        .footer-column h4 {
+            color: var(--white);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .footer-column ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-column li {
+            margin-bottom: 8px;
+        }
+
+        .footer-column a {
+            color: var(--gray-text);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .footer-column a:hover {
+            color: var(--spark-light);
+        }
+
+        .footer-bottom {
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.06);
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        footer .logo { font-size: 18px; }
-
-        footer p {
             color: var(--gray-text);
             font-size: 13px;
         }
@@ -519,11 +639,14 @@
             .hero-sub { font-size: 17px; }
             .steps { grid-template-columns: 1fr; }
             .cases-grid { grid-template-columns: 1fr; }
-            .how-section, .use-cases, .cta-section { padding-left: 24px; padding-right: 24px; }
+            .how-section, .use-cases, .cta-section, .trust-section { padding-left: 24px; padding-right: 24px; }
             .mock-row { flex-direction: column; }
             .email-form { flex-direction: column; }
             .email-form button { width: 100%; }
-            footer { flex-direction: column; gap: 16px; text-align: center; }
+            .trust-stats { flex-direction: column; gap: 32px; }
+            .footer-content { flex-direction: column; gap: 32px; }
+            .footer-links { flex-direction: column; gap: 24px; }
+            .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
         }
     </style>
 </head>
@@ -540,7 +663,7 @@
         <div class="nav-links">
             <a href="#how">How It Works</a>
             <a href="#use-cases">Use Cases</a>
-            <a href="/admin" class="btn-primary">Create Campaign</a>
+            <a href="/admin" class="btn-primary">Create Your First Campaign — Free</a>
         </div>
     </nav>
 
@@ -608,6 +731,24 @@
         </div>
     </section>
 
+    <section class="trust-section">
+        <div class="trust-stats">
+            <div class="trust-stat">
+                <div class="trust-stat-value" id="stat-campaigns">—</div>
+                <div class="trust-stat-label">Campaigns Created</div>
+            </div>
+            <div class="trust-stat">
+                <div class="trust-stat-value" id="stat-shares">—</div>
+                <div class="trust-stat-label">Shares Made</div>
+            </div>
+        </div>
+        <div class="trust-badge-list">
+            <span>✓ Used by PR teams</span>
+            <span>✓ Event organisers</span>
+            <span>✓ Community builders</span>
+        </div>
+    </section>
+
     <section class="how-section" id="how">
         <h2>Three steps to amplified reach</h2>
         <p class="how-sub">No app downloads. No logins for your people. Just sharing.</p>
@@ -627,6 +768,9 @@
                 <h3>They Share, You Track</h3>
                 <p>Recipients pick an image, copy the text, and share to LinkedIn or X. One click. You see it all in real time.</p>
             </div>
+        </div>
+        <div style="text-align: center; margin-top: 48px;">
+            <a href="/admin" class="btn-primary" style="font-size: 16px; padding: 16px 36px;">Create Your First Campaign — Free</a>
         </div>
     </section>
 
@@ -667,15 +811,38 @@
     </section>
 
     <footer>
-        <div class="logo">
-            <div class="logo-spark" style="width:22px;height:22px">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" style="width:12px;height:12px">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                </svg>
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="logo">
+                    <div class="logo-spark" style="width:22px;height:22px">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" style="width:12px;height:12px">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </div>
+                    Spark Sharing
+                </div>
+                <p class="footer-description">Coordinated social sharing for PR teams, events, launches, and communities.</p>
             </div>
-            Spark Sharing
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#how">How It Works</a></li>
+                        <li><a href="#use-cases">Use Cases</a></li>
+                        <li><a href="/admin">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><a href="mailto:spark-sharing@polsia.app">spark-sharing@polsia.app</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <p>&copy; 2026 Spark Sharing. Coordinated social amplification.</p>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Spark Sharing. All rights reserved.</p>
+        </div>
     </footer>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -718,6 +885,54 @@
                 btn.textContent = formId === 'hero' ? 'Get Early Access' : 'Start Free';
             }
         }
+
+        // Fetch and display live stats
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    const campaignEl = document.getElementById('stat-campaigns');
+                    const shareEl = document.getElementById('stat-shares');
+
+                    if (campaignEl) {
+                        animateCounter(campaignEl, data.campaigns_created || 0);
+                    }
+                    if (shareEl) {
+                        animateCounter(shareEl, data.shares_made || 0);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load stats:', err);
+            }
+        }
+
+        function animateCounter(element, target) {
+            const duration = 1500;
+            const start = 0;
+            const increment = target / (duration / 16);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = formatNumber(target);
+                    clearInterval(timer);
+                } else {
+                    element.textContent = formatNumber(Math.floor(current));
+                }
+            }, 16);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            }
+            return num.toString();
+        }
+
+        // Load stats on page load
+        loadStats();
     </script>
 </body>
 </html>

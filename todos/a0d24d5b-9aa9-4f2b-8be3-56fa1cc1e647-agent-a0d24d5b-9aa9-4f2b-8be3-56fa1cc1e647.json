@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Add /api/stats endpoint for trust signals",
+    "status": "completed",
+    "activeForm": "Adding /api/stats endpoint for trust signals"
+  },
+  {
+    "content": "Add trust signals section with live campaign/share counter",
+    "status": "completed",
+    "activeForm": "Adding trust signals section with live campaign/share counter"
+  },
+  {
+    "content": "Update CTAs to say 'Create Your First Campaign — Free'",
+    "status": "completed",
+    "activeForm": "Updating CTAs to say 'Create Your First Campaign — Free'"
+  },
+  {
+    "content": "Add company email and improved footer structure",
+    "status": "completed",
+    "activeForm": "Adding company email and improved footer structure"
+  },
+  {
+    "content": "Push changes and deploy to production",
+    "status": "in_progress",
+    "activeForm": "Pushing changes and deploying to production"
+  },
+  {
+    "content": "Verify landing page displays correctly with live stats",
+    "status": "pending",
+    "activeForm": "Verifying landing page displays correctly with live stats"
+  }
+]

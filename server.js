@@ -659,6 +659,24 @@ app.get('/api/campaigns/:id/analytics', requireAuth, async (req, res) => {
   }
 });
 
+// ===== PUBLIC STATS (for landing page trust signals) =====
+app.get('/api/stats', async (req, res) => {
+  try {
+    const [campaigns, shares] = await Promise.all([
+      query('SELECT COUNT(*) as count FROM campaigns'),
+      query("SELECT COUNT(*) as count FROM events WHERE event_type IN ('share_click_linkedin', 'share_click_x')")
+    ]);
+
+    res.json({
+      campaigns_created: parseInt(campaigns.rows[0].count),
+      shares_made: parseInt(shares.rows[0].count)
+    });
+  } catch (err) {
+    console.error('[stats] Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // ===== METRICS ENDPOINT (JSON for monitoring) =====
 app.get('/api/metrics', async (req, res) => {
   try {
