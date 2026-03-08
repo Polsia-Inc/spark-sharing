@@ -252,6 +252,103 @@ app.get('/s/:token', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'share.html'));
 });
 
+// ===== EMAIL NOTIFICATIONS =====
+async function sendLeadNotification(leadEmail, source, leadCount) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <tr>
+          <td style="padding: 40px 30px; text-align: center; background: linear-gradient(135deg, #FF6B2B 0%, #E85A1F 100%);">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff;">
+              🎯 New Lead Captured
+            </h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 40px 30px;">
+            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #333;">
+              A new prospect just signed up for Spark Sharing:
+            </p>
+            <div style="background-color: #f8f8f8; border-left: 4px solid #FF6B2B; padding: 20px; margin: 20px 0;">
+              <p style="margin: 0 0 10px; font-size: 14px; color: #666;"><strong>Email:</strong></p>
+              <p style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #FF6B2B;">${leadEmail}</p>
+              <p style="margin: 0 0 10px; font-size: 14px; color: #666;"><strong>Source:</strong></p>
+              <p style="margin: 0 0 20px; font-size: 16px; color: #333;">${source || 'direct'}</p>
+              <p style="margin: 0 0 10px; font-size: 14px; color: #666;"><strong>Timestamp:</strong></p>
+              <p style="margin: 0 0 20px; font-size: 16px; color: #333;">${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}</p>
+              <p style="margin: 0 0 10px; font-size: 14px; color: #666;"><strong>Total Leads:</strong></p>
+              <p style="margin: 0; font-size: 16px; color: #333;">${leadCount}</p>
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://spark-sharing.polsia.app/admin/analytics" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #FF6B2B 0%, #E85A1F 100%); color: #ffffff; text-decoration: none; font-weight: 600; border-radius: 8px; font-size: 16px;">
+                View Analytics Dashboard
+              </a>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 20px 30px; text-align: center; background-color: #f5f5f5; border-top: 1px solid #e0e0e0;">
+            <p style="margin: 0; font-size: 13px; color: #999;">
+              © 2026 Spark Sharing • Coordinated Social Campaigns
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `;
+
+  const textContent = `🎯 New Lead Captured
+
+A new prospect just signed up for Spark Sharing:
+
+Email: ${leadEmail}
+Source: ${source || 'direct'}
+Timestamp: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}
+Total Leads: ${leadCount}
+
+View Analytics Dashboard: https://spark-sharing.polsia.app/admin/analytics
+
+---
+© 2026 Spark Sharing • Coordinated Social Campaigns`;
+
+  try {
+    const response = await fetch('https://polsia.com/api/proxy/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.POLSIA_API_KEY}`
+      },
+      body: JSON.stringify({
+        to: 'laurie@refinerymedia.co.uk',
+        subject: `New lead: ${leadEmail}`,
+        body: textContent,
+        html: htmlContent,
+        transactional: true // REQUIRED: Bypasses rate limits for transactional emails
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('[EMAIL] Failed to send lead notification:', result);
+      return false;
+    }
+
+    console.log(`[EMAIL] Lead notification sent for ${leadEmail}`);
+    return true;
+  } catch (err) {
+    console.error('[EMAIL] Error sending lead notification:', err);
+    return false;
+  }
+}
+
 // ===== EMAIL CAPTURE (LEADS) =====
 app.post('/api/leads', async (req, res) => {
   try {
@@ -261,6 +358,15 @@ app.post('/api/leads', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    // Check if email already exists (BEFORE insert for reliable duplicate detection)
+    const existingLead = await query(
+      'SELECT id FROM leads WHERE LOWER(email) = LOWER($1)',
+      [cleanEmail]
+    );
+    const isNewLead = existingLead.rows.length === 0;
+
+    // Insert or handle duplicate
     const result = await query(
       `INSERT INTO leads (email, source) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING RETURNING id`,
       [cleanEmail, source || 'direct']
@@ -268,6 +374,18 @@ app.post('/api/leads', async (req, res) => {
 
     // Track the signup event
     trackEvent('lead_captured', req, { email: cleanEmail, source: source || 'direct' }).catch(() => {});
+
+    // Send notification email ONLY for new leads
+    if (isNewLead) {
+      // Get total lead count for the notification
+      const countResult = await query('SELECT COUNT(*) as count FROM leads');
+      const leadCount = parseInt(countResult.rows[0].count);
+
+      // Send asynchronously (don't block response)
+      sendLeadNotification(cleanEmail, source || 'direct', leadCount).catch(err => {
+        console.error('[EMAIL] Lead notification failed but lead was saved:', err);
+      });
+    }
 
     if (result.rows.length > 0) {
       res.json({ success: true, message: "You're in! We'll be in touch soon." });
